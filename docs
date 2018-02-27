@@ -1,0 +1,22 @@
+http://www.codewars.com/kata/tiny-three-pass-compiler/train/haskell
+
+to start ghcid: ghcid -o ghcid.txt --command="stack ghci ThreePass.hs"
+
+grammar:
+
+    function   ::= '[' arg-list ']' expression
+
+    arg-list   ::= /* nothing */
+                 | variable arg-list
+
+    expression ::= term
+                 | expression '+' term
+                 | expression '-' term
+
+    term       ::= factor
+                 | term '*' factor
+                 | term '/' factor
+
+    factor     ::= number
+                 | variable
+                 | '(' expression ')'

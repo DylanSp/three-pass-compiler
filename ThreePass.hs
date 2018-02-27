@@ -6,7 +6,7 @@ import Data.Maybe (fromJust)
 import Text.Parsec
 import qualified Text.Parsec.Token as Tok
 
---count number of arguments declared, what idents map to what argument #s
+-- count number of arguments declared, how identifiers map to argument numbers
 type CompilerState = (Int, Map String Int) 
 type Parser a = Parsec String CompilerState a
 
@@ -61,6 +61,8 @@ argList = do
   many variableDec
   return ()
 
+-- for each variable declaration, we add a mapping from the argument name to the argument number
+-- as well as incrementing the Int in CompilerState, which tracks what argument number we're on
 variableDec :: Parser ()
 variableDec = do
   varName <- identifier
@@ -92,8 +94,8 @@ number = do
   num <- integer
   return $ Imm $ fromIntegral num
 
---using fromJust because we don't care about error handling
---per problem, all programs will be valid
+-- using fromJust because we don't care about error handling
+-- per problem, all programs will be valid
 variableUse :: Parser AST
 variableUse = do
   varName <- identifier
@@ -103,11 +105,14 @@ variableUse = do
 compile :: String -> [String]
 compile = pass3 . pass2 . pass1
 
+-- parsing pass
 pass1 :: String -> AST
 pass1 str = case (runParser function (0, Map.empty) "" str) of
   (Left _) -> error "Parse error"
   (Right ast) -> ast
 
+-- constant folding pass
+-- do a postorder traversal of the AST, checking for optimization opportunities at each node
 pass2 :: AST -> AST
 pass2 ast = case ast of
   Add left right -> case (pass2 left, pass2 right) of
@@ -124,7 +129,8 @@ pass2 ast = case ast of
     (l, r) -> Div l r
   _ -> ast
 
-
+-- code generation pass
+-- postorder traversal of the AST, generating code at each node
 pass3 :: AST -> [String]
 pass3 ast = case ast of
   Imm n -> ["IM " ++ show n, "PU"]
@@ -133,4 +139,3 @@ pass3 ast = case ast of
   Sub l r -> pass3 l ++ pass3 r ++ ["PO", "SW", "PO", "SU", "PU"]
   Mul l r -> pass3 l ++ pass3 r ++ ["PO", "SW", "PO", "MU", "PU"]
   Div l r -> pass3 l ++ pass3 r ++ ["PO", "SW", "PO", "DI", "PU"]
-
